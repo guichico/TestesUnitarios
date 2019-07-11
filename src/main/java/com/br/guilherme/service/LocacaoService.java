@@ -3,6 +3,8 @@ package com.br.guilherme.service;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+
+import com.br.guilherme.daos.LocacaoDAO;
 import com.br.guilherme.entities.Filme;
 import com.br.guilherme.entities.Locacao;
 import com.br.guilherme.entities.Usuario;
@@ -12,9 +14,16 @@ import com.br.guilherme.utils.DataUtils;
 
 public class LocacaoService {
 
+	private LocacaoDAO locacaoDAO;
+	private SPCService spcService;
+	private EmailService emailService;
+
 	public Locacao alugarFilme(Usuario usuario, List<Filme> filmes) 
 			throws FilmeSemEstoqueException, LocadoraException {
 		if(usuario == null || usuario.getNome().isEmpty())
+			throw new LocadoraException();
+
+		if(spcService.consultaSPC(usuario))
 			throw new LocadoraException();
 
 		if(filmes == null || filmes.isEmpty())
@@ -54,6 +63,27 @@ public class LocacaoService {
 
 		locacao.setDataRetorno(dataEntrega);
 
+		locacaoDAO.salvar(locacao);
+
 		return locacao;
+	}
+
+	public void notificarAtrasos() {
+		List<Locacao> locacoes = locacaoDAO.obterLocacoesComAtraso();
+		for (Locacao locacao : locacoes) {
+			emailService.notificarUsuarioComAtraso(locacao.getUsuario());
+		}
+	}
+
+	public void setLocacaoDAO(LocacaoDAO locacaoDAO) {
+		this.locacaoDAO = locacaoDAO;
+	}
+
+	public void setSpcService(SPCService spcService) {
+		this.spcService = spcService;
+	}
+
+	public void setEmailService(EmailService emailService) {
+		this.emailService = emailService;
 	}
 }

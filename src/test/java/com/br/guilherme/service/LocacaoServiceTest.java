@@ -1,8 +1,10 @@
 package com.br.guilherme.service;
 
+import static builders.LocacaoBuilder.umLocacao;
+import static builders.UsuarioBuilder.newUsuario;
+import static com.br.guilherme.utils.DataUtils.obterDataComDiferencaDias;
 import static com.br.guilherme.utils.DataUtils.verificarDiaSemana;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -12,25 +14,34 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.rules.ErrorCollector;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.mockito.Mockito;
 
+import com.br.guilherme.daos.LocacaoDAO;
 import com.br.guilherme.entities.Filme;
 import com.br.guilherme.entities.Locacao;
 import com.br.guilherme.entities.Usuario;
 import com.br.guilherme.exceptions.FilmeSemEstoqueException;
 import com.br.guilherme.exceptions.LocadoraException;
-import com.br.guilherme.utils.DataUtils;
+
+import matchers.Matchers;
 
 @RunWith(Parameterized.class)
 public class LocacaoServiceTest {
 
-	private static LocacaoService locacaoService;
-	private static Usuario usuario;
+	private ErrorCollector error = new ErrorCollector(); 
+
+	private LocacaoService locacaoService;
+
+	private LocacaoDAO locacaoDAO;
+	private SPCService spcService;
+	private EmailService emailService;
 
 	@Parameter(value = 0)
 	public List<Filme> filmes;
@@ -54,17 +65,29 @@ public class LocacaoServiceTest {
 		});
 	}
 
-	@BeforeClass
-	public static void init() {
-		locacaoService = new LocacaoService();
+	@Before
+	public void init() {
+		locacaoDAO = Mockito.mock(LocacaoDAO.class);
+		spcService = Mockito.mock(SPCService.class);
+		emailService = Mockito.mock(EmailService.class);
 
-		usuario  = new Usuario();
-		usuario.setNome("Guilherme");
+		locacaoService = new LocacaoService();
+		locacaoService.setLocacaoDAO(locacaoDAO);
+		locacaoService.setSpcService(spcService);
+		locacaoService.setEmailService(emailService);
 	}
-	
+
+	@Test
+	public void alugarFilmeTest() throws FilmeSemEstoqueException, LocadoraException {
+		Locacao locacao = locacaoService.alugarFilme(newUsuario().getUsuario(), filmes);
+
+		error.checkThat(locacao.getDataLocacao(), Matchers.isToday());
+		error.checkThat(locacao.getDataRetorno(), Matchers.isTomorrow());
+	}
+
 	@Test
 	public void calcularLocacaoConsiderandoDesconto() throws FilmeSemEstoqueException, LocadoraException {
-		Locacao locacao = locacaoService.alugarFilme(usuario, filmes);
+		Locacao locacao = locacaoService.alugarFilme(newUsuario().getUsuario(), filmes);
 
 		assertEquals(valorLocacao, locacao.getValor(), 0.01);
 	}
@@ -72,20 +95,49 @@ public class LocacaoServiceTest {
 	@Test(expected = FilmeSemEstoqueException.class)
 	public void testLocacaoSemEstoque() throws FilmeSemEstoqueException, LocadoraException {
 		List<Filme> filmes = Arrays.asList(new Filme("Senhor dos Anéis", 0, 5.0));
-		
-		locacaoService.alugarFilme(usuario, filmes);
+
+		locacaoService.alugarFilme(newUsuario().getUsuario(), filmes);
 	}
 
 	@Test
 	public void naoDeveDevolverFilmeDomingo() throws FilmeSemEstoqueException, LocadoraException {
 		assumeTrue(verificarDiaSemana(new Date(), Calendar.SATURDAY));
-		
+
 		List<Filme> filmes = Arrays.asList(new Filme("Senhor dos Anéis", 2, 5.0));
-		
-		Locacao locacao = locacaoService.alugarFilme(usuario, filmes);
+
+		Locacao locacao = locacaoService.alugarFilme(newUsuario().getUsuario(), filmes);
 
 		boolean isMonday = verificarDiaSemana(locacao.getDataRetorno(), Calendar.MONDAY);
 
 		assertTrue(isMonday);
+	}
+
+	@Test(expected = LocadoraException.class)
+	public void naoDeveAlugarParaUsuarioNegativado() throws FilmeSemEstoqueException, LocadoraException {
+		List<Filme> filmes = Arrays.asList(new Filme("Senhor dos Anéis", 2, 5.0));
+
+		Usuario usuario = newUsuario().getUsuario();
+
+		Mockito.when(spcService.consultaSPC(usuario)).thenReturn(true);
+
+		locacaoService.alugarFilme(usuario, filmes);
+		
+		Mockito.verify(spcService).consultaSPC(usuario);
+	}
+
+	@Test
+	public void deveNotificarLocacoesAtrasadas() {
+		Usuario usuario = newUsuario().getUsuario();
+
+		List<Locacao> locacoes = Arrays.asList(umLocacao()
+				.comUsuario(usuario)
+				.comDataLocacao(obterDataComDiferencaDias(-2))
+				.agora());
+
+		Mockito.when(locacaoDAO.obterLocacoesComAtraso()).thenReturn(locacoes);
+
+		locacaoService.notificarAtrasos();
+
+		Mockito.verify(emailService).notificarUsuarioComAtraso(usuario);
 	}
 }
