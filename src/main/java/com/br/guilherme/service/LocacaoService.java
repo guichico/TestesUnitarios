@@ -1,5 +1,6 @@
 package com.br.guilherme.service;
 
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import com.br.guilherme.entities.Filme;
@@ -19,13 +20,23 @@ public class LocacaoService {
 		if(filmes == null || filmes.isEmpty())
 			throw new LocadoraException();
 
+		int i = 0; 
 		double precoLocacao = 0;
 		for (Filme f : filmes) {
 			if(f.getEstoque() == 0) {
 				throw new FilmeSemEstoqueException();
 			}
-			
-			precoLocacao += f.getPrecoLocacao();
+
+			double valorFilme = 0;
+			switch (i) {
+			case 2: valorFilme = f.getPrecoLocacao() * 0.75; break;
+			case 3:	valorFilme = f.getPrecoLocacao() * 0.50; break;
+			default: valorFilme = f.getPrecoLocacao(); break;
+			}
+
+			precoLocacao += valorFilme;
+
+			i++;
 		}
 
 		Locacao locacao = new Locacao();
@@ -37,6 +48,10 @@ public class LocacaoService {
 		//Entrega no dia seguinte
 		Date dataEntrega = new Date();
 		dataEntrega = DataUtils.adicionarDias(dataEntrega, 1);
+
+		if(DataUtils.verificarDiaSemana(dataEntrega, Calendar.SUNDAY))
+			dataEntrega = DataUtils.adicionarDias(dataEntrega, 1);
+
 		locacao.setDataRetorno(dataEntrega);
 
 		return locacao;
