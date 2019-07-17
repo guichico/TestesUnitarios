@@ -1,7 +1,7 @@
 package builders;
 
 import static builders.FilmeBuilder.umFilme;
-import static builders.UsuarioBuilder.newUsuario;
+import static builders.UsuarioBuilder.umUsuario;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -24,8 +24,8 @@ public class LocacaoBuilder {
 	public static void inicializarDadosPadroes(LocacaoBuilder builder) {
 		builder.locacao = new Locacao();
 		Locacao elemento = builder.locacao;
-		
-		elemento.setUsuario(newUsuario().getUsuario());
+
+		elemento.setUsuario(umUsuario().agora());
 		elemento.setFilmes(Arrays.asList(umFilme().agora()));
 		elemento.setDataLocacao(new Date());
 		elemento.setDataRetorno(DataUtils.obterDataComDiferencaDias(1));
@@ -49,6 +49,12 @@ public class LocacaoBuilder {
 
 	public LocacaoBuilder comDataRetorno(Date param) {
 		locacao.setDataRetorno(param);
+		return this;
+	}
+
+	public LocacaoBuilder atrasada() {
+		locacao.setDataLocacao(DataUtils.obterDataComDiferencaDias(-4));
+		locacao.setDataRetorno(DataUtils.obterDataComDiferencaDias(-2));		
 		return this;
 	}
 

@@ -4,5 +4,5 @@ import com.br.guilherme.entities.Usuario;
 
 public interface SPCService {
 
-	public boolean consultaSPC(Usuario usuario);
+	public boolean possuiNegativacao(Usuario usuario);
 }

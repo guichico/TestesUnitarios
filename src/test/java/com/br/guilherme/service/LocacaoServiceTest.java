@@ -1,12 +1,17 @@
 package com.br.guilherme.service;
 
 import static builders.LocacaoBuilder.umLocacao;
-import static builders.UsuarioBuilder.newUsuario;
-import static com.br.guilherme.utils.DataUtils.obterDataComDiferencaDias;
+import static builders.UsuarioBuilder.umUsuario;
 import static com.br.guilherme.utils.DataUtils.verificarDiaSemana;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.any;
 
 import java.util.Arrays;
 import java.util.Calendar;
@@ -79,7 +84,7 @@ public class LocacaoServiceTest {
 
 	@Test
 	public void alugarFilmeTest() throws FilmeSemEstoqueException, LocadoraException {
-		Locacao locacao = locacaoService.alugarFilme(newUsuario().getUsuario(), filmes);
+		Locacao locacao = locacaoService.alugarFilme(umUsuario().agora(), filmes);
 
 		error.checkThat(locacao.getDataLocacao(), Matchers.isToday());
 		error.checkThat(locacao.getDataRetorno(), Matchers.isTomorrow());
@@ -87,7 +92,7 @@ public class LocacaoServiceTest {
 
 	@Test
 	public void calcularLocacaoConsiderandoDesconto() throws FilmeSemEstoqueException, LocadoraException {
-		Locacao locacao = locacaoService.alugarFilme(newUsuario().getUsuario(), filmes);
+		Locacao locacao = locacaoService.alugarFilme(umUsuario().agora(), filmes);
 
 		assertEquals(valorLocacao, locacao.getValor(), 0.01);
 	}
@@ -96,7 +101,7 @@ public class LocacaoServiceTest {
 	public void testLocacaoSemEstoque() throws FilmeSemEstoqueException, LocadoraException {
 		List<Filme> filmes = Arrays.asList(new Filme("Senhor dos Anéis", 0, 5.0));
 
-		locacaoService.alugarFilme(newUsuario().getUsuario(), filmes);
+		locacaoService.alugarFilme(umUsuario().agora(), filmes);
 	}
 
 	@Test
@@ -105,7 +110,7 @@ public class LocacaoServiceTest {
 
 		List<Filme> filmes = Arrays.asList(new Filme("Senhor dos Anéis", 2, 5.0));
 
-		Locacao locacao = locacaoService.alugarFilme(newUsuario().getUsuario(), filmes);
+		Locacao locacao = locacaoService.alugarFilme(umUsuario().agora(), filmes);
 
 		boolean isMonday = verificarDiaSemana(locacao.getDataRetorno(), Calendar.MONDAY);
 
@@ -116,28 +121,35 @@ public class LocacaoServiceTest {
 	public void naoDeveAlugarParaUsuarioNegativado() throws FilmeSemEstoqueException, LocadoraException {
 		List<Filme> filmes = Arrays.asList(new Filme("Senhor dos Anéis", 2, 5.0));
 
-		Usuario usuario = newUsuario().getUsuario();
+		Usuario usuario = umUsuario().agora();
 
-		Mockito.when(spcService.consultaSPC(usuario)).thenReturn(true);
+		when(spcService.possuiNegativacao(usuario)).thenReturn(true);
 
 		locacaoService.alugarFilme(usuario, filmes);
-		
-		Mockito.verify(spcService).consultaSPC(usuario);
+
+		verify(spcService).possuiNegativacao(usuario);
 	}
 
 	@Test
 	public void deveNotificarLocacoesAtrasadas() {
-		Usuario usuario = newUsuario().getUsuario();
+		Usuario usuario = umUsuario().agora();
+		Usuario usuario2 = umUsuario().comNome("Usuário em dia").agora();
+		Usuario usuario3 = umUsuario().comNome("Outro atrasado").agora();
 
-		List<Locacao> locacoes = Arrays.asList(umLocacao()
-				.comUsuario(usuario)
-				.comDataLocacao(obterDataComDiferencaDias(-2))
-				.agora());
+		List<Locacao> locacoes = Arrays.asList(
+				umLocacao().atrasada().comUsuario(usuario).agora(),
+				umLocacao().comUsuario(usuario2).agora(),
+				umLocacao().atrasada().comUsuario(usuario3).agora(),
+				umLocacao().atrasada().comUsuario(usuario3).agora());
 
-		Mockito.when(locacaoDAO.obterLocacoesComAtraso()).thenReturn(locacoes);
+		when(locacaoDAO.obterLocacoesComAtraso()).thenReturn(locacoes);
 
 		locacaoService.notificarAtrasos();
 
-		Mockito.verify(emailService).notificarUsuarioComAtraso(usuario);
+		verify(emailService, times(3)).notificarUsuarioComAtraso(any(Usuario.class));
+		verify(emailService).notificarUsuarioComAtraso(usuario);
+		verify(emailService, never()).notificarUsuarioComAtraso(usuario2);
+		verify(emailService, times(2)).notificarUsuarioComAtraso(usuario3);
+		verifyNoMoreInteractions(emailService);
 	}
 }

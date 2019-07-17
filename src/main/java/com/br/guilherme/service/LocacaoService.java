@@ -23,7 +23,7 @@ public class LocacaoService {
 		if(usuario == null || usuario.getNome().isEmpty())
 			throw new LocadoraException();
 
-		if(spcService.consultaSPC(usuario))
+		if(spcService.possuiNegativacao(usuario))
 			throw new LocadoraException();
 
 		if(filmes == null || filmes.isEmpty())
@@ -71,7 +71,8 @@ public class LocacaoService {
 	public void notificarAtrasos() {
 		List<Locacao> locacoes = locacaoDAO.obterLocacoesComAtraso();
 		for (Locacao locacao : locacoes) {
-			emailService.notificarUsuarioComAtraso(locacao.getUsuario());
+			if(locacao.getDataRetorno().before(new Date()))
+				emailService.notificarUsuarioComAtraso(locacao.getUsuario());
 		}
 	}
 
