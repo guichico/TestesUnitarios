@@ -23,7 +23,15 @@ public class LocacaoService {
 		if(usuario == null || usuario.getNome().isEmpty())
 			throw new LocadoraException();
 
-		if(spcService.possuiNegativacao(usuario))
+		boolean negativado;
+
+		try {
+			negativado = spcService.possuiNegativacao(usuario);
+		} catch (Exception e) {
+			throw new LocadoraException();
+		}
+
+		if(negativado)
 			throw new LocadoraException();
 
 		if(filmes == null || filmes.isEmpty())

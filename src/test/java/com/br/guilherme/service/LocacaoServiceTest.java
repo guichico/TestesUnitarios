@@ -1,5 +1,6 @@
 package com.br.guilherme.service;
 
+import static builders.FilmeBuilder.umFilme;
 import static builders.LocacaoBuilder.umLocacao;
 import static builders.UsuarioBuilder.umUsuario;
 import static com.br.guilherme.utils.DataUtils.verificarDiaSemana;
@@ -98,7 +99,7 @@ public class LocacaoServiceTest {
 
 	@Test(expected = FilmeSemEstoqueException.class)
 	public void testLocacaoSemEstoque() throws FilmeSemEstoqueException, LocadoraException {
-		List<Filme> filmes = Arrays.asList(new Filme("Senhor dos Anéis", 0, 5.0));
+		List<Filme> filmes = Arrays.asList(umFilme().semEstoque().agora());
 
 		locacaoService.alugarFilme(umUsuario().agora(), filmes);
 	}
@@ -107,7 +108,7 @@ public class LocacaoServiceTest {
 	public void naoDeveDevolverFilmeDomingo() throws FilmeSemEstoqueException, LocadoraException {
 		assumeTrue(verificarDiaSemana(new Date(), Calendar.SATURDAY));
 
-		List<Filme> filmes = Arrays.asList(new Filme("Senhor dos Anéis", 2, 5.0));
+		List<Filme> filmes = Arrays.asList(umFilme().agora());
 
 		Locacao locacao = locacaoService.alugarFilme(umUsuario().agora(), filmes);
 
@@ -117,8 +118,8 @@ public class LocacaoServiceTest {
 	}
 
 	@Test(expected = LocadoraException.class)
-	public void naoDeveAlugarParaUsuarioNegativado() throws FilmeSemEstoqueException, LocadoraException {
-		List<Filme> filmes = Arrays.asList(new Filme("Senhor dos Anéis", 2, 5.0));
+	public void naoDeveAlugarParaUsuarioNegativado() throws Exception {
+		List<Filme> filmes = Arrays.asList(umFilme().agora());
 
 		Usuario usuario = umUsuario().agora();
 
@@ -127,6 +128,17 @@ public class LocacaoServiceTest {
 		locacaoService.alugarFilme(usuario, filmes);
 
 		verify(spcService).possuiNegativacao(usuario);
+	}
+
+	@Test(expected = LocadoraException.class)
+	public void deveTratarErroServicoSPC() throws Exception {
+		List<Filme> filmes = Arrays.asList(umFilme().agora());
+
+		Usuario usuario = umUsuario().agora();
+		
+		when(spcService.possuiNegativacao(usuario)).thenThrow(new Exception("Serviço de consulta ao SPC indisponível"));
+		
+		locacaoService.alugarFilme(usuario, filmes);
 	}
 
 	@Test
