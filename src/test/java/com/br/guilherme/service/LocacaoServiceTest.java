@@ -11,6 +11,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.MockitoAnnotations.initMocks;
 import static org.mockito.Mockito.any;
 
 import java.util.Arrays;
@@ -26,7 +27,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.mockito.Mockito;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 
 import com.br.guilherme.daos.LocacaoDAO;
 import com.br.guilherme.entities.Filme;
@@ -42,10 +44,14 @@ public class LocacaoServiceTest {
 
 	private ErrorCollector error = new ErrorCollector(); 
 
+	@InjectMocks
 	private LocacaoService locacaoService;
 
+	@Mock
 	private LocacaoDAO locacaoDAO;
+	@Mock
 	private SPCService spcService;
+	@Mock
 	private EmailService emailService;
 
 	@Parameter(value = 0)
@@ -72,14 +78,7 @@ public class LocacaoServiceTest {
 
 	@Before
 	public void init() {
-		locacaoDAO = Mockito.mock(LocacaoDAO.class);
-		spcService = Mockito.mock(SPCService.class);
-		emailService = Mockito.mock(EmailService.class);
-
-		locacaoService = new LocacaoService();
-		locacaoService.setLocacaoDAO(locacaoDAO);
-		locacaoService.setSpcService(spcService);
-		locacaoService.setEmailService(emailService);
+		initMocks(this);
 	}
 
 	@Test
