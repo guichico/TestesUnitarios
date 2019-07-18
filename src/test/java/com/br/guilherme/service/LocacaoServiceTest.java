@@ -3,6 +3,7 @@ package com.br.guilherme.service;
 import static builders.FilmeBuilder.umFilme;
 import static builders.LocacaoBuilder.umLocacao;
 import static builders.UsuarioBuilder.umUsuario;
+import static com.br.guilherme.utils.DataUtils.obterData;
 import static matchers.Matchers.caiNumaSegunda;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -13,9 +14,11 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doReturn;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 import org.junit.Before;
@@ -34,6 +37,7 @@ import com.br.guilherme.entities.Locacao;
 import com.br.guilherme.entities.Usuario;
 import com.br.guilherme.exceptions.FilmeSemEstoqueException;
 import com.br.guilherme.exceptions.LocadoraException;
+import com.br.guilherme.utils.DateService;
 
 import matchers.Matchers;
 
@@ -45,6 +49,8 @@ public class LocacaoServiceTest {
 	@InjectMocks
 	private LocacaoService locacaoService;
 
+	@Mock
+	private DateService dateService;
 	@Mock
 	private LocacaoDAO locacaoDAO;
 	@Mock
@@ -77,6 +83,8 @@ public class LocacaoServiceTest {
 	@Before
 	public void init() {
 		initMocks(this);
+		
+		doReturn(new Date()).when(dateService).obterDataAtual();
 	}
 
 	@Test
@@ -104,7 +112,9 @@ public class LocacaoServiceTest {
 	@Test
 	public void naoDeveDevolverFilmeDomingo() throws Exception {
 		List<Filme> filmes = Arrays.asList(umFilme().agora());
-
+		
+		doReturn(obterData(13, 07, 2019)).when(dateService).obterDataAtual();
+		
 		Locacao locacao = locacaoService.alugarFilme(umUsuario().agora(), filmes);
 
 		assertThat(locacao.getDataRetorno(), caiNumaSegunda());

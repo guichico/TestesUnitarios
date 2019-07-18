@@ -11,12 +11,14 @@ import com.br.guilherme.entities.Usuario;
 import com.br.guilherme.exceptions.FilmeSemEstoqueException;
 import com.br.guilherme.exceptions.LocadoraException;
 import com.br.guilherme.utils.DataUtils;
+import com.br.guilherme.utils.DateService;
 
 public class LocacaoService {
 
 	private LocacaoDAO locacaoDAO;
 	private SPCService spcService;
 	private EmailService emailService;
+	private DateService dateService;
 
 	public Locacao alugarFilme(Usuario usuario, List<Filme> filmes) 
 			throws FilmeSemEstoqueException, LocadoraException {
@@ -40,7 +42,7 @@ public class LocacaoService {
 		Locacao locacao = new Locacao();
 		locacao.setFilmes(filmes);
 		locacao.setUsuario(usuario);
-		locacao.setDataLocacao(new Date());
+		locacao.setDataLocacao(dateService.obterDataAtual());
 		locacao.setValor(calcularValorLocacao(filmes));
 		locacao.setDataRetorno(calcularDataDevolucao());
 
@@ -75,7 +77,7 @@ public class LocacaoService {
 	
 	private Date calcularDataDevolucao() {
 		//Entrega no dia seguinte
-		Date dataEntrega = new Date();
+		Date dataEntrega = dateService.obterDataAtual();
 		dataEntrega = DataUtils.adicionarDias(dataEntrega, 1);
 
 		if(DataUtils.verificarDiaSemana(dataEntrega, Calendar.SUNDAY))
@@ -87,7 +89,7 @@ public class LocacaoService {
 	public void notificarAtrasos() {
 		List<Locacao> locacoes = locacaoDAO.obterLocacoesComAtraso();
 		for (Locacao locacao : locacoes) {
-			if(locacao.getDataRetorno().before(new Date()))
+			if(locacao.getDataRetorno().before(dateService.obterDataAtual()))
 				emailService.notificarUsuarioComAtraso(locacao.getUsuario());
 		}
 	}
