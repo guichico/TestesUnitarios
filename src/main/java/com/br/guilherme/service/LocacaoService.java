@@ -20,11 +20,14 @@ public class LocacaoService {
 
 	public Locacao alugarFilme(Usuario usuario, List<Filme> filmes) 
 			throws FilmeSemEstoqueException, LocadoraException {
+		
 		if(usuario == null || usuario.getNome().isEmpty())
 			throw new LocadoraException();
 
+		if(filmes == null || filmes.isEmpty())
+			throw new LocadoraException();
+		
 		boolean negativado;
-
 		try {
 			negativado = spcService.possuiNegativacao(usuario);
 		} catch (Exception e) {
@@ -34,11 +37,22 @@ public class LocacaoService {
 		if(negativado)
 			throw new LocadoraException();
 
-		if(filmes == null || filmes.isEmpty())
-			throw new LocadoraException();
+		Locacao locacao = new Locacao();
+		locacao.setFilmes(filmes);
+		locacao.setUsuario(usuario);
+		locacao.setDataLocacao(new Date());
+		locacao.setValor(calcularValorLocacao(filmes));
+		locacao.setDataRetorno(calcularDataDevolucao());
 
-		int i = 0; 
+		locacaoDAO.salvar(locacao);
+
+		return locacao;
+	}
+
+	private double calcularValorLocacao(List<Filme> filmes) throws FilmeSemEstoqueException {
 		double precoLocacao = 0;
+
+		int i = 0;
 		for (Filme f : filmes) {
 			if(f.getEstoque() == 0) {
 				throw new FilmeSemEstoqueException();
@@ -56,24 +70,18 @@ public class LocacaoService {
 			i++;
 		}
 
-		Locacao locacao = new Locacao();
-		locacao.setFilmes(filmes);
-		locacao.setUsuario(usuario);
-		locacao.setDataLocacao(new Date());
-		locacao.setValor(precoLocacao);
-
+		return precoLocacao;
+	}
+	
+	private Date calcularDataDevolucao() {
 		//Entrega no dia seguinte
 		Date dataEntrega = new Date();
 		dataEntrega = DataUtils.adicionarDias(dataEntrega, 1);
 
 		if(DataUtils.verificarDiaSemana(dataEntrega, Calendar.SUNDAY))
 			dataEntrega = DataUtils.adicionarDias(dataEntrega, 1);
-
-		locacao.setDataRetorno(dataEntrega);
-
-		locacaoDAO.salvar(locacao);
-
-		return locacao;
+		
+		return dataEntrega;
 	}
 
 	public void notificarAtrasos() {

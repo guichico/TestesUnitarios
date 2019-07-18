@@ -1,6 +1,8 @@
 package matchers;
 
+import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
@@ -16,7 +18,10 @@ public class DateMatcher extends TypeSafeMatcher<Date> {
 	}
 	
 	public void describeTo(Description description) {
-		// TODO Auto-generated method stub
+		Calendar data = Calendar.getInstance();
+		data.set(Calendar.DAY_OF_WEEK, days);
+		String dataExtenso = data.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.LONG, new Locale("pt", "BR"));
+		description.appendText(dataExtenso);
 	}
 
 	@Override

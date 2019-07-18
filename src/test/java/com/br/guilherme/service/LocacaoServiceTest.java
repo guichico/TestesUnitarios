@@ -3,10 +3,9 @@ package com.br.guilherme.service;
 import static builders.FilmeBuilder.umFilme;
 import static builders.LocacaoBuilder.umLocacao;
 import static builders.UsuarioBuilder.umUsuario;
-import static com.br.guilherme.utils.DataUtils.verificarDiaSemana;
+import static matchers.Matchers.caiNumaSegunda;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -16,9 +15,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 import static org.mockito.Mockito.any;
 
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
 
 import org.junit.Before;
@@ -105,16 +102,12 @@ public class LocacaoServiceTest {
 	}
 
 	@Test
-	public void naoDeveDevolverFilmeDomingo() throws FilmeSemEstoqueException, LocadoraException {
-		assumeTrue(verificarDiaSemana(new Date(), Calendar.SATURDAY));
-
+	public void naoDeveDevolverFilmeDomingo() throws Exception {
 		List<Filme> filmes = Arrays.asList(umFilme().agora());
 
 		Locacao locacao = locacaoService.alugarFilme(umUsuario().agora(), filmes);
 
-		boolean isMonday = verificarDiaSemana(locacao.getDataRetorno(), Calendar.MONDAY);
-
-		assertTrue(isMonday);
+		assertThat(locacao.getDataRetorno(), caiNumaSegunda());
 	}
 
 	@Test(expected = LocadoraException.class)
@@ -135,9 +128,9 @@ public class LocacaoServiceTest {
 		List<Filme> filmes = Arrays.asList(umFilme().agora());
 
 		Usuario usuario = umUsuario().agora();
-		
+
 		when(spcService.possuiNegativacao(usuario)).thenThrow(new Exception("Serviço de consulta ao SPC indisponível"));
-		
+
 		locacaoService.alugarFilme(usuario, filmes);
 	}
 
