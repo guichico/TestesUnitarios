@@ -1,6 +1,6 @@
 package com.br.guilherme.exceptions;
 
-public class FilmeSemEstoqueException extends Exception {
+public class MovieOutOfStockException extends Exception {
 
 	/**
 	 * 

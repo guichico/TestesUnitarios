@@ -12,7 +12,7 @@ public class Matchers {
 		return new DateMatcher(1);
 	}
 	
-	public static DateMatcher caiNumaSegunda(){
+	public static DateMatcher isMonday(){
 		return new DateMatcher(Calendar.MONDAY);
 	}
 }

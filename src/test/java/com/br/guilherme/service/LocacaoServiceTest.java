@@ -31,12 +31,12 @@ import org.junit.runners.Parameterized.Parameters;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
-import com.br.guilherme.daos.LocacaoDAO;
-import com.br.guilherme.entities.Filme;
-import com.br.guilherme.entities.Locacao;
-import com.br.guilherme.entities.Usuario;
-import com.br.guilherme.exceptions.FilmeSemEstoqueException;
-import com.br.guilherme.exceptions.LocadoraException;
+import com.br.guilherme.daos.RentDAO;
+import com.br.guilherme.entities.Movie;
+import com.br.guilherme.entities.Rent;
+import com.br.guilherme.entities.User;
+import com.br.guilherme.exceptions.MovieOutOfStockException;
+import com.br.guilherme.exceptions.RentException;
 import com.br.guilherme.utils.DateService;
 
 import matchers.Matchers;
@@ -47,28 +47,28 @@ public class LocacaoServiceTest {
 	private ErrorCollector error = new ErrorCollector(); 
 
 	@InjectMocks
-	private LocacaoService locacaoService;
+	private RentService locacaoService;
 
 	@Mock
 	private DateService dateService;
 	@Mock
-	private LocacaoDAO locacaoDAO;
+	private RentDAO locacaoDAO;
 	@Mock
 	private SPCService spcService;
 	@Mock
 	private EmailService emailService;
 
 	@Parameter(value = 0)
-	public List<Filme> filmes;
+	public List<Movie> filmes;
 	@Parameter(value = 1)
 	public Double valorLocacao;
 	@Parameter(value = 2)
 	public String name;
 
-	private static Filme filme1 = new Filme("Senhor dos Anéis", 2, 5.0), 
-			filme2 = new Filme("Poderoso Chefão", 3, 4.5),
-			filme3 = new Filme("Vingadores", 10, 9.0),
-			filme4 = new Filme("Pocahontas", 1, 3.0);
+	private static Movie filme1 = new Movie("Senhor dos Anéis", 2, 5.0), 
+			filme2 = new Movie("Poderoso Chefão", 3, 4.5),
+			filme3 = new Movie("Vingadores", 10, 9.0),
+			filme4 = new Movie("Pocahontas", 1, 3.0);
 
 	@Parameters(name="{2}")
 	public static Collection<Object[]> getParameters() {
@@ -88,43 +88,43 @@ public class LocacaoServiceTest {
 	}
 
 	@Test
-	public void alugarFilmeTest() throws FilmeSemEstoqueException, LocadoraException {
-		Locacao locacao = locacaoService.alugarFilme(umUsuario().agora(), filmes);
+	public void alugarFilmeTest() throws MovieOutOfStockException, RentException {
+		Rent locacao = locacaoService.alugarFilme(umUsuario().agora(), filmes);
 
 		error.checkThat(locacao.getDataLocacao(), Matchers.isToday());
 		error.checkThat(locacao.getDataRetorno(), Matchers.isTomorrow());
 	}
 
 	@Test
-	public void calcularLocacaoConsiderandoDesconto() throws FilmeSemEstoqueException, LocadoraException {
-		Locacao locacao = locacaoService.alugarFilme(umUsuario().agora(), filmes);
+	public void calcularLocacaoConsiderandoDesconto() throws MovieOutOfStockException, RentException {
+		Rent locacao = locacaoService.alugarFilme(umUsuario().agora(), filmes);
 
 		assertEquals(valorLocacao, locacao.getValor(), 0.01);
 	}
 
-	@Test(expected = FilmeSemEstoqueException.class)
-	public void testLocacaoSemEstoque() throws FilmeSemEstoqueException, LocadoraException {
-		List<Filme> filmes = Arrays.asList(umFilme().semEstoque().agora());
+	@Test(expected = MovieOutOfStockException.class)
+	public void testLocacaoSemEstoque() throws MovieOutOfStockException, RentException {
+		List<Movie> filmes = Arrays.asList(umFilme().semEstoque().agora());
 
 		locacaoService.alugarFilme(umUsuario().agora(), filmes);
 	}
 
 	@Test
 	public void naoDeveDevolverFilmeDomingo() throws Exception {
-		List<Filme> filmes = Arrays.asList(umFilme().agora());
+		List<Movie> filmes = Arrays.asList(umFilme().agora());
 		
 		doReturn(obterData(13, 07, 2019)).when(dateService).obterDataAtual();
 		
-		Locacao locacao = locacaoService.alugarFilme(umUsuario().agora(), filmes);
+		Rent locacao = locacaoService.alugarFilme(umUsuario().agora(), filmes);
 
 		assertThat(locacao.getDataRetorno(), caiNumaSegunda());
 	}
 
-	@Test(expected = LocadoraException.class)
+	@Test(expected = RentException.class)
 	public void naoDeveAlugarParaUsuarioNegativado() throws Exception {
-		List<Filme> filmes = Arrays.asList(umFilme().agora());
+		List<Movie> filmes = Arrays.asList(umFilme().agora());
 
-		Usuario usuario = umUsuario().agora();
+		User usuario = umUsuario().agora();
 
 		when(spcService.possuiNegativacao(usuario)).thenReturn(true);
 
@@ -133,11 +133,11 @@ public class LocacaoServiceTest {
 		verify(spcService).possuiNegativacao(usuario);
 	}
 
-	@Test(expected = LocadoraException.class)
+	@Test(expected = RentException.class)
 	public void deveTratarErroServicoSPC() throws Exception {
-		List<Filme> filmes = Arrays.asList(umFilme().agora());
+		List<Movie> filmes = Arrays.asList(umFilme().agora());
 
-		Usuario usuario = umUsuario().agora();
+		User usuario = umUsuario().agora();
 
 		when(spcService.possuiNegativacao(usuario)).thenThrow(new Exception("Serviço de consulta ao SPC indisponível"));
 
@@ -146,11 +146,11 @@ public class LocacaoServiceTest {
 
 	@Test
 	public void deveNotificarLocacoesAtrasadas() {
-		Usuario usuario = umUsuario().agora();
-		Usuario usuario2 = umUsuario().comNome("Usuário em dia").agora();
-		Usuario usuario3 = umUsuario().comNome("Outro atrasado").agora();
+		User usuario = umUsuario().agora();
+		User usuario2 = umUsuario().comNome("Usuário em dia").agora();
+		User usuario3 = umUsuario().comNome("Outro atrasado").agora();
 
-		List<Locacao> locacoes = Arrays.asList(
+		List<Rent> locacoes = Arrays.asList(
 				umLocacao().atrasada().comUsuario(usuario).agora(),
 				umLocacao().comUsuario(usuario2).agora(),
 				umLocacao().atrasada().comUsuario(usuario3).agora(),
@@ -160,7 +160,7 @@ public class LocacaoServiceTest {
 
 		locacaoService.notificarAtrasos();
 
-		verify(emailService, times(3)).notificarUsuarioComAtraso(any(Usuario.class));
+		verify(emailService, times(3)).notificarUsuarioComAtraso(any(User.class));
 		verify(emailService).notificarUsuarioComAtraso(usuario);
 		verify(emailService, never()).notificarUsuarioComAtraso(usuario2);
 		verify(emailService, times(2)).notificarUsuarioComAtraso(usuario3);

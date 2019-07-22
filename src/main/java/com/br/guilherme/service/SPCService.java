@@ -1,8 +1,8 @@
 package com.br.guilherme.service;
 
-import com.br.guilherme.entities.Usuario;
+import com.br.guilherme.entities.User;
 
 public interface SPCService {
 
-	public boolean possuiNegativacao(Usuario usuario) throws Exception;
+	public boolean isNegativated(User user) throws Exception;
 }

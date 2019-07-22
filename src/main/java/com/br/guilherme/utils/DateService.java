@@ -4,6 +4,8 @@ import java.util.Date;
 
 public interface DateService {
 	
-	Date obterDataAtual();
+	Date getDate();
+	
+	Date getDate(int days);
 
 }
