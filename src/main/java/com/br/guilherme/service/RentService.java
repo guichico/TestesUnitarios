@@ -9,7 +9,10 @@ import com.br.guilherme.entities.Movie;
 import com.br.guilherme.entities.Rent;
 import com.br.guilherme.entities.User;
 import com.br.guilherme.exceptions.MovieOutOfStockException;
-import com.br.guilherme.exceptions.RentException;
+import com.br.guilherme.exceptions.NoMovieException;
+import com.br.guilherme.exceptions.NotAuthorizedException;
+import com.br.guilherme.exceptions.ServiceUnavaliableException;
+import com.br.guilherme.exceptions.UserNegativatedException;
 import com.br.guilherme.utils.DataUtils;
 import com.br.guilherme.utils.DateService;
 
@@ -20,23 +23,23 @@ public class RentService {
 	private DateService dateService;
 
 	public Rent rentMovie(User user, List<Movie> movies) 
-			throws MovieOutOfStockException, RentException {
+			throws MovieOutOfStockException, NotAuthorizedException, NoMovieException, UserNegativatedException, ServiceUnavaliableException {
 
 		if(user == null || user.getName().isEmpty())
-			throw new RentException();
+			throw new NotAuthorizedException();
 
 		if(movies == null || movies.isEmpty())
-			throw new RentException();
+			throw new NoMovieException();
 
 		boolean negativated;
 		try {
 			negativated = spcService.isNegativated(user);
 		} catch (Exception e) {
-			throw new RentException();
+			throw new ServiceUnavaliableException();
 		}
 
 		if(negativated)
-			throw new RentException();
+			throw new UserNegativatedException();
 
 		Rent rent = Rent.builder()
 				.withMovies(movies)

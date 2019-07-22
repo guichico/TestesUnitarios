@@ -35,7 +35,10 @@ import com.br.guilherme.entities.Movie;
 import com.br.guilherme.entities.Rent;
 import com.br.guilherme.entities.User;
 import com.br.guilherme.exceptions.MovieOutOfStockException;
-import com.br.guilherme.exceptions.RentException;
+import com.br.guilherme.exceptions.NoMovieException;
+import com.br.guilherme.exceptions.NotAuthorizedException;
+import com.br.guilherme.exceptions.ServiceUnavaliableException;
+import com.br.guilherme.exceptions.UserNegativatedException;
 import com.br.guilherme.utils.DateService;
 
 @RunWith(Parameterized.class)
@@ -61,7 +64,7 @@ public class LocacaoServiceTest {
 	public Double rentValue;
 	@Parameter(value = 2)
 	public String name;
-	
+
 	private User user;
 
 	private static Movie movie1 = Movie.builder().withTitle("Senhor dos Anéis").withStock(2).withPrice(5.0).build(), 
@@ -84,27 +87,37 @@ public class LocacaoServiceTest {
 		initMocks(this);
 
 		doReturn(new Date()).when(dateService).getDate();
-		
+
 		user = User.builder().withName("Guilherme").build();
 	}
 
 	@Test
-	public void rentMovieTest() throws MovieOutOfStockException, RentException {
+	public void rentMovieTest() throws Exception {
 		Rent rent = rentService.rentMovie(user, movies);
 
 		error.checkThat(rent.getRentDate(), isToday());
 		error.checkThat(rent.getReturnDate(), isTomorrow());
 	}
 
+	@Test(expected = NotAuthorizedException.class)
+	public void shouldntRentWithoutUser() throws Exception {
+		rentService.rentMovie(null, movies);
+	}
+
+	@Test(expected = NoMovieException.class)
+	public void shouldntRentWithoutMovie() throws Exception {
+		rentService.rentMovie(user, null);
+	}
+
 	@Test
-	public void calculateRentValueWithDiscount() throws MovieOutOfStockException, RentException {
+	public void calculateRentValueWithDiscount() throws Exception {
 		Rent rent = rentService.rentMovie(user, movies);
 
 		assertEquals(rentValue, rent.getValue(), 0.01);
 	}
 
 	@Test(expected = MovieOutOfStockException.class)
-	public void shouldntRentMovieOutOfStock() throws MovieOutOfStockException, RentException {
+	public void shouldntRentMovieOutOfStock() throws Exception {
 		List<Movie> movies = Arrays.asList(Movie.builder().withStock(0).build());
 
 		rentService.rentMovie(user, movies);
@@ -121,7 +134,7 @@ public class LocacaoServiceTest {
 		assertThat(rent.getReturnDate(), isMonday());
 	}
 
-	@Test(expected = RentException.class)
+	@Test(expected = UserNegativatedException.class)
 	public void shouldntRentToNegativatedUser() throws Exception {
 		List<Movie> movies = Arrays.asList(movie1);
 
@@ -132,7 +145,7 @@ public class LocacaoServiceTest {
 		verify(spcService).isNegativated(user);
 	}
 
-	@Test(expected = RentException.class)
+	@Test(expected = ServiceUnavaliableException.class)
 	public void shouldHandleErroOnSPCService() throws Exception {
 		List<Movie> movies = Arrays.asList(movie1);
 
@@ -147,7 +160,7 @@ public class LocacaoServiceTest {
 		User user3 = User.builder().withName("Outro atrasado").build();
 
 		doReturn(addDays(new Date(), 1)).when(dateService).getDate(1);
-		
+
 		List<Rent> rentals = Arrays.asList(
 				Rent.builder().withUser(user).withMovies(Arrays.asList(movie1)).delayed(dateService.getDate()).withValue(4.0).build(),
 				Rent.builder().withUser(user2).withMovies(Arrays.asList(movie1)).withRentDate(dateService.getDate()).withReturnDate(dateService.getDate(1)).withValue(4.0).build(),
