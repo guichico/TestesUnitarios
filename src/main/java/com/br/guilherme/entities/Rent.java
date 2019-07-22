@@ -2,6 +2,7 @@ package com.br.guilherme.entities;
 
 import java.util.Date;
 import java.util.List;
+import static com.br.guilherme.utils.DataUtils.addDays;
 import java.util.Collections;
 
 public class Rent {
@@ -38,7 +39,7 @@ public class Rent {
 		this.returnDate = builder.returnDate;
 		this.value = builder.value;
 	}
-	
+
 	public static Builder builder() {
 		return new Builder();
 	}
@@ -75,6 +76,12 @@ public class Rent {
 
 		public Builder withValue(Double value) {
 			this.value = value;
+			return this;
+		}
+
+		public Builder delayed(Date date) {
+			this.rentDate = addDays(date, -4);
+			this.returnDate = addDays(date, -2);
 			return this;
 		}
 
