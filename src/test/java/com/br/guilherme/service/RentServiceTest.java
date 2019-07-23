@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.rules.ErrorCollector;
@@ -42,7 +43,7 @@ import com.br.guilherme.exceptions.UserNegativatedException;
 import com.br.guilherme.utils.DateService;
 
 @RunWith(Parameterized.class)
-public class LocacaoServiceTest {
+public class RentServiceTest {
 
 	private ErrorCollector error = new ErrorCollector(); 
 
@@ -89,6 +90,13 @@ public class LocacaoServiceTest {
 		doReturn(new Date()).when(dateService).getDate();
 
 		user = User.builder().withName("Guilherme").build();
+		
+		System.out.println("iniciando teste");
+	}
+	
+	@After
+	public void endTest() {
+		System.out.println("finalizando teste");
 	}
 
 	@Test
