@@ -10,6 +10,7 @@ public class User {
 	private Date registerDate;
 	private Character gender;
 	private String cep;
+	private String state;
 	private String city;
 	private String district;
 	private String address;
@@ -44,6 +45,10 @@ public class User {
 		return cep;
 	}
 
+	public String getState() {
+		return state;
+	}
+	
 	public String getCity() {
 		return city;
 	}
@@ -72,6 +77,7 @@ public class User {
 		this.registerDate = builder.registerDate;
 		this.gender = builder.gender;
 		this.cep = builder.cep;
+		this.state = builder.state;
 		this.city = builder.city;
 		this.district = builder.district;
 		this.address = builder.address;
@@ -91,6 +97,7 @@ public class User {
 		private Date registerDate;
 		private Character gender;
 		private String cep;
+		private String state;
 		private String city;
 		private String district;
 		private String address;
@@ -132,6 +139,11 @@ public class User {
 
 		public Builder withCep(String cep) {
 			this.cep = cep;
+			return this;
+		}
+		
+		public Builder withState(String state) {
+			this.state = state;
 			return this;
 		}
 
